@@ -1,0 +1,1 @@
+web: cd englishteacher-api && java -Dserver.port=$PORT -jar target/englishteacher-api-0.0.1-SNAPSHOT.jar
