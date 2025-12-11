@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: englishteacher-db
+    environment:
+      POSTGRES_DB: englishteacher_db
+      POSTGRES_USER: englishteacher
+      POSTGRES_PASSWORD: englishteacher
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - englishteacher-network
+
+  # Backend Spring Boot
+  backend:
+    build: ./englishteacher-api
+    container_name: englishteacher-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/englishteacher_db
+      - DB_USERNAME=englishteacher
+      - DB_PASSWORD=englishteacher
+      - DDL_AUTO=update
+      - CORS_ORIGINS=http://localhost:3000,https://tu-dominio-frontend.com
+    depends_on:
+      - postgres
+    networks:
+      - englishteacher-network
+
+  # Frontend React
+  frontend:
+    build: ./english-teacher/frontend
+    container_name: englishteacher-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - englishteacher-network
+
+volumes:
+  postgres_data:
+
+networks:
+  englishteacher-network:
+    driver: bridge

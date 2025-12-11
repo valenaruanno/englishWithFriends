@@ -1,0 +1,10 @@
+# Railway Configuration for Spring Boot Backend
+[build]
+  cmd = "cd englishteacher-api && chmod +x mvnw && ./mvnw clean package -DskipTests"
+
+[deploy]
+  startCommand = "cd englishteacher-api && java -jar target/englishteacher-api-0.0.1-SNAPSHOT.jar"
+
+[env]
+  PORT = "8080"
+  JAVA_VERSION = "21"

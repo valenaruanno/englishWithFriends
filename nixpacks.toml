@@ -1,0 +1,15 @@
+{
+  "providers": ["java"],
+  "phases": {
+    "build": {
+      "commands": [
+        "cd englishteacher-api",
+        "chmod +x mvnw",
+        "./mvnw clean package -DskipTests"
+      ]
+    },
+    "start": {
+      "cmd": "cd englishteacher-api && java -jar target/englishteacher-api-0.0.1-SNAPSHOT.jar"
+    }
+  }
+}
