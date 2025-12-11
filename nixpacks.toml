@@ -1,2 +1,18 @@
 [providers]
 java = "21"
+
+[variables]
+MAVEN_OPTS = "-Xmx512m"
+
+[phases.setup]
+nixPkgs = ["maven", "openjdk21"]
+
+[phases.build] 
+cmds = [
+    "cd englishteacher-api",
+    "chmod +x mvnw",
+    "./mvnw clean package -DskipTests"
+]
+
+[phases.start]
+cmd = "cd englishteacher-api && java -jar target/englishteacher-api-0.0.1-SNAPSHOT.jar"
