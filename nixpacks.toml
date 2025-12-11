@@ -9,10 +9,9 @@ nixPkgs = ["maven", "openjdk21"]
 
 [phases.build]
 cmds = [
-    "cd englishteacher-api",
     "chmod +x mvnw", 
-    "./mvnw clean package -DskipTests -Dmaven.compiler.release=21"
+    "./mvnw clean package -DskipTests -Dmaven.compiler.release=21 -f englishteacher-api/pom.xml"
 ]
 
 [phases.start]
-cmd = "cd englishteacher-api && java -jar target/englishteacher-api-0.0.1-SNAPSHOT.jar"
+cmd = "java -jar englishteacher-api/target/englishteacher-api-0.0.1-SNAPSHOT.jar"
