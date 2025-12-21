@@ -54,7 +54,7 @@ const Navbar = ({ levels, selectedLevel, onLevelSelect }) => {
                     className="navbar-dropdown-item"
                   >
                     {level.name}
-                    {level.activitiesCount && (
+                    {level.activitiesCount > 0 && (
                       <span style={{ color: '#6b7280', marginLeft: '0.5rem' }}>({level.activitiesCount} actividades)</span>
                     )}
                   </button>
