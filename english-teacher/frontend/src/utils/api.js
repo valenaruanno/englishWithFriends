@@ -11,7 +11,6 @@ const apiConfig = {
 // Función helper para hacer peticiones API
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  console.log('Making API call to:', url);
 
   // Solo agregar token para rutas administrativas
   const isAdminRoute = endpoint.includes('/create') || 
@@ -23,12 +22,6 @@ export const apiCall = async (endpoint, options = {}) => {
 
   // Obtener token si existe y la ruta lo necesita
   const token = isAdminRoute ? authUtils.getAuthToken() : null;
-
-  console.log('🔵 apiCall - endpoint:', endpoint);
-  console.log('🔵 apiCall - isAdminRoute:', isAdminRoute);
-  console.log('🔵 apiCall - token exists:', !!token);
-  console.log('🔵 apiCall - token value:', token?.substring(0, 20) + '...');
-  console.log('🔵 apiCall - isSessionValid:', authUtils.isSessionValid());
 
   const config = {
     ...apiConfig,
@@ -111,20 +104,11 @@ export const authUtils = {
 
   // Obtener token de autenticación
   getAuthToken: () => {
-    const isValid = authUtils.isSessionValid();
-    const tokenFromStorage = localStorage.getItem('authToken');
-    
-    console.log('🔵 getAuthToken() - isSessionValid:', isValid);
-    console.log('🔵 getAuthToken() - tokenFromStorage:', tokenFromStorage);
-    console.log('🔵 getAuthToken() - typeof token:', typeof tokenFromStorage);
-    
-    if (!isValid) {
-      console.log('🔴 getAuthToken() - Sesión no válida');
+    if (!authUtils.isSessionValid()) {
       return null;
     }
     
-    console.log('🔵 getAuthToken() - Retornando token:', tokenFromStorage);
-    return tokenFromStorage;
+    return localStorage.getItem('authToken');
   },
 
   // Cerrar sesión
@@ -208,13 +192,11 @@ export const fileAPI = {
     const formData = new FormData();
     formData.append('file', file);
     
-    console.log('🔵 Subiendo archivo:', file.name);
     const response = await apiCall('/files/upload/activity', {
       method: 'POST',
       body: formData,
       headers: {} // No incluir Content-Type, el browser lo agrega automáticamente para FormData
     });
-    console.log('🔵 Respuesta del upload:', response);
     return response;
   },
 

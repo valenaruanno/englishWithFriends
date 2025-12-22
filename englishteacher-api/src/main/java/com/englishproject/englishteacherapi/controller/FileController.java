@@ -144,7 +144,6 @@ public class FileController {
                contentType.equals("audio/mp3") ||
                contentType.equals("video/mp4") ||
                contentType.equals("application/msword") ||
-               contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
-               contentType.equals("text/plain"); // Temporal para testing
+               contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     }
 }

@@ -53,30 +53,9 @@ public class ActivityController {
     @PostMapping
     public ResponseEntity<ActivityDTO> createActivity(@RequestBody ActivityDTO activityDTO) {
         try {
-            // Logs para debuggear
-            System.out.println("=== CREAR ACTIVIDAD DEBUG ===");
-            System.out.println("ActivityDTO recibido:");
-            System.out.println("Title: " + activityDTO.getTitle());
-            System.out.println("Description: " + activityDTO.getDescription());
-            System.out.println("Content: " + activityDTO.getContent());
-            System.out.println("Type: " + activityDTO.getType());
-            System.out.println("ResourceFileUrl: " + activityDTO.getResourceFileUrl());
-            System.out.println("ResourceFileName: " + activityDTO.getResourceFileName());
-            System.out.println("LevelId: " + activityDTO.getLevelId());
-            System.out.println("IsActive: " + activityDTO.getIsActive());
-            System.out.println("==============================");
-            
             ActivityDTO createdActivity = activityService.createActivity(activityDTO);
-            
-            System.out.println("=== ACTIVIDAD CREADA ===");
-            System.out.println("ID: " + createdActivity.getId());
-            System.out.println("ResourceFileUrl RESULTADO: " + createdActivity.getResourceFileUrl());
-            System.out.println("ResourceFileName RESULTADO: " + createdActivity.getResourceFileName());
-            System.out.println("========================");
-            
             return ResponseEntity.status(HttpStatus.CREATED).body(createdActivity);
         } catch (IllegalArgumentException e) {
-            System.out.println("Error al crear actividad: " + e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

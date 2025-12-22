@@ -25,10 +25,6 @@ const LoginModal = ({ isOpen, onClose }) => {
 
     try {
       const response = await authAPI.login(formData.email, formData.password);
-      console.log('🔵 Login response completa:', response);
-      console.log('🔵 Login response.success:', response.success);
-      console.log('🔵 Login response.token:', response.token);
-      console.log('🔵 Login typeof response.token:', typeof response.token);
 
       if (response.success) {
         // Guardar datos del usuario en localStorage con tiempo de expiración
@@ -38,23 +34,13 @@ const LoginModal = ({ isOpen, onClose }) => {
         localStorage.setItem('teacherData', JSON.stringify(response.teacher));
         if (response.token && response.token !== '' && response.token !== 'undefined') {
           localStorage.setItem('authToken', response.token);
-          console.log('🟢 Token JWT guardado exitosamente:', response.token.substring(0, 20) + '...');
         } else {
-          console.log('🔴 Warning: No se recibió token JWT válido. Token recibido:', response.token);
           localStorage.removeItem('authToken'); // Limpiar token inválido
         }
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('loginTime', loginTime.toString());
         localStorage.setItem('sessionExpiration', expirationTime.toString());
 
-        console.log('🔵 Token guardado en localStorage:', localStorage.getItem('authToken'));
-        console.log('🔵 Todos los items en localStorage:');
-        console.log('  - teacherData:', !!localStorage.getItem('teacherData'));
-        console.log('  - authToken:', localStorage.getItem('authToken'));
-        console.log('  - isAuthenticated:', localStorage.getItem('isAuthenticated'));
-        console.log('  - loginTime:', localStorage.getItem('loginTime'));
-        console.log('  - sessionExpiration:', localStorage.getItem('sessionExpiration'));
-        console.log('Login successful, redirecting to admin...');
         // Cerrar modal y redirigir
         onClose();
         navigate('/admin');
