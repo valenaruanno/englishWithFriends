@@ -17,16 +17,24 @@ export const apiCall = async (endpoint, options = {}) => {
   const isAdminRoute = endpoint.includes('/create') || 
                       endpoint.includes('/update') || 
                       endpoint.includes('/delete') || 
-                      endpoint.includes('/admin');
+                      endpoint.includes('/admin') ||
+                      endpoint.includes('/upload') ||
+                      (endpoint === '/activities' && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE'));
 
   // Obtener token si existe y la ruta lo necesita
   const token = isAdminRoute ? authUtils.getAuthToken() : null;
+
+  console.log('🔵 apiCall - endpoint:', endpoint);
+  console.log('🔵 apiCall - isAdminRoute:', isAdminRoute);
+  console.log('🔵 apiCall - token exists:', !!token);
+  console.log('🔵 apiCall - token value:', token?.substring(0, 20) + '...');
+  console.log('🔵 apiCall - isSessionValid:', authUtils.isSessionValid());
 
   const config = {
     ...apiConfig,
     ...options,
     headers: {
-      ...apiConfig.headers,
+      ...(!(options.body instanceof FormData) && apiConfig.headers), // Solo agregar headers default si no es FormData
       ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers,
     },
@@ -103,11 +111,20 @@ export const authUtils = {
 
   // Obtener token de autenticación
   getAuthToken: () => {
-    if (!authUtils.isSessionValid()) {
+    const isValid = authUtils.isSessionValid();
+    const tokenFromStorage = localStorage.getItem('authToken');
+    
+    console.log('🔵 getAuthToken() - isSessionValid:', isValid);
+    console.log('🔵 getAuthToken() - tokenFromStorage:', tokenFromStorage);
+    console.log('🔵 getAuthToken() - typeof token:', typeof tokenFromStorage);
+    
+    if (!isValid) {
+      console.log('🔴 getAuthToken() - Sesión no válida');
       return null;
     }
     
-    return localStorage.getItem('authToken');
+    console.log('🔵 getAuthToken() - Retornando token:', tokenFromStorage);
+    return tokenFromStorage;
   },
 
   // Cerrar sesión
@@ -183,4 +200,27 @@ export const teacherAPI = {
   deleteActivity: (id) => apiCall(`/activities/${id}`, {
     method: 'DELETE'
   })
+};
+
+// API para manejo de archivos
+export const fileAPI = {
+  uploadActivityFile: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    console.log('🔵 Subiendo archivo:', file.name);
+    const response = await apiCall('/files/upload/activity', {
+      method: 'POST',
+      body: formData,
+      headers: {} // No incluir Content-Type, el browser lo agrega automáticamente para FormData
+    });
+    console.log('🔵 Respuesta del upload:', response);
+    return response;
+  },
+
+  deleteActivityFile: (fileName) => apiCall(`/files/activities/${fileName}`, {
+    method: 'DELETE'
+  }),
+
+  getFileUrl: (fileName) => `${API_BASE_URL}/files/activities/${fileName}`
 };

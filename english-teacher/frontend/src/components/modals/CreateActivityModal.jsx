@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { teacherAPI } from '../../utils/api';
+import { teacherAPI, fileAPI } from '../../utils/api';
 
 const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editingActivity = null }) => {
   const [formData, setFormData] = useState({
@@ -8,10 +8,14 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
     content: '',
     levelId: '',
     type: '',
-    resourceUrl: ''
+    resourceFileUrl: '',
+    resourceFileName: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadedFileInfo, setUploadedFileInfo] = useState(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const activityTypes = [
     'Conversación',
@@ -24,6 +28,30 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
     'Preparación de exámenes'
   ];
 
+  // Mapeo de tipos en español a inglés para el backend
+  const typeMapping = {
+    'Conversación': 'SPEAKING',
+    'Gramática': 'GRAMMAR',
+    'Vocabulario': 'VOCABULARY',
+    'Comprensión de lectura': 'READING',
+    'Comprensión auditiva': 'LISTENING',
+    'Escritura': 'WRITING',
+    'Pronunciación': 'SPEAKING',
+    'Preparación de exámenes': 'EXERCISE'
+  };
+
+  // Mapeo inverso para mostrar valores en español
+  const typeReverseMapping = {
+    'SPEAKING': 'Conversación',
+    'GRAMMAR': 'Gramática',
+    'VOCABULARY': 'Vocabulario',
+    'READING': 'Comprensión de lectura',
+    'LISTENING': 'Comprensión auditiva',
+    'WRITING': 'Escritura',
+    'EXERCISE': 'Preparación de exámenes',
+    'GAME': 'Juego'
+  };
+
   // Cargar datos si estamos editando
   useEffect(() => {
     if (editingActivity) {
@@ -32,22 +60,128 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
         description: editingActivity.description || '',
         content: editingActivity.content || '',
         levelId: editingActivity.levelId || '',
-        type: editingActivity.type || '',
-        resourceUrl: editingActivity.resourceUrl || ''
+        type: typeReverseMapping[editingActivity.type] || editingActivity.type || '', // Convertir de inglés a español
+        resourceFileUrl: editingActivity.resourceFileUrl || '',
+        resourceFileName: editingActivity.resourceFileName || ''
       });
-    } else {
-      // Resetear formulario para nueva actividad
+      
+      // Si hay archivo existente, mostrar info
+      if (editingActivity.resourceFileUrl) {
+        setUploadedFileInfo({
+          fileName: editingActivity.resourceFileName || 'Archivo existente',
+          fileUrl: editingActivity.resourceFileUrl
+        });
+      }
+    } else if (isOpen && !editingActivity) {
+      // Resetear formulario solo cuando se abre modal para nueva actividad
       setFormData({
         title: '',
         description: '',
         content: '',
         levelId: '',
         type: '',
-        resourceUrl: ''
+        resourceFileUrl: '',
+        resourceFileName: ''
       });
+      setUploadedFileInfo(null);
+      setSelectedFile(null);
     }
     setError('');
   }, [editingActivity, isOpen]);
+
+  // Funciones para manejo de archivos
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    console.log('🔵 handleFileChange ejecutado');
+    console.log('🔵 Archivo seleccionado:', file);
+    console.log('🔵 Nombre del archivo:', file?.name);
+    console.log('🔵 Tipo del archivo:', file?.type);
+    console.log('🔵 Tamaño del archivo:', file?.size);
+    
+    setSelectedFile(file);
+    
+    if (file) {
+      // Validar tipo y tamaño
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf', 'audio/mpeg', 'video/mp4'];
+      
+      console.log('🔵 Validando tipo de archivo...');
+      console.log('🔵 file.type:', file.type);
+      console.log('🔵 Tipo válido:', validTypes.includes(file.type));
+      
+      if (!validTypes.includes(file.type)) {
+        console.log('🔴 Tipo de archivo no válido');
+        setError('Tipo de archivo no permitido. Solo se permiten: jpg, jpeg, png, webp, pdf, mp3, mp4');
+        setSelectedFile(null);
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        console.log('🔴 Archivo muy grande');
+        setError('El archivo es muy grande. Máximo 10MB permitido.');
+        setSelectedFile(null);
+        return;
+      }
+      
+      console.log('🟢 Archivo válido, configurando selectedFile');
+      setError('');
+    } else {
+      console.log('🔴 No se seleccionó ningún archivo');
+    }
+  };
+
+  const uploadFile = async () => {
+    console.log('🔵 uploadFile() iniciado, selectedFile:', selectedFile);
+    console.log('🔵 Token disponible antes de upload:', localStorage.getItem('authToken'));
+    console.log('🔵 Session valid:', localStorage.getItem('isAuthenticated'));
+    
+    if (!selectedFile) {
+      console.log('🔴 No hay archivo seleccionado');
+      return null;
+    }
+    
+    setIsUploadingFile(true);
+    try {
+      console.log('🔵 Llamando a fileAPI.uploadActivityFile...');
+      const response = await fileAPI.uploadActivityFile(selectedFile);
+      console.log('🔵 Respuesta de fileAPI.uploadActivityFile:', response);
+      
+      if (response.success) {
+        setUploadedFileInfo({
+          fileName: response.originalName,
+          fileUrl: response.fileUrl,
+          filePath: response.filePath
+        });
+        console.log('🟢 Upload exitoso, retornando:', {
+          resourceFileUrl: response.fileUrl,
+          resourceFileName: response.originalName
+        });
+        return {
+          resourceFileUrl: response.fileUrl,
+          resourceFileName: response.originalName
+        };
+      } else {
+        console.log('🔴 Upload falló:', response.message);
+        setError(response.message);
+        return null;
+      }
+    } catch (err) {
+      console.log('🔴 Error en upload:', err);
+      setError('Error al subir archivo: ' + err.message);
+      return null;
+    } finally {
+      setIsUploadingFile(false);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setUploadedFileInfo(null);
+    setFormData(prev => ({
+      ...prev,
+      resourceFileUrl: '',
+      resourceFileName: ''
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -73,14 +207,45 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
       if (!formData.levelId) {
         throw new Error('Debe seleccionar un nivel');
       }
+      if (!formData.type) {
+        throw new Error('Debe seleccionar un tipo de actividad');
+      }
+
+      // Subir archivo si hay uno seleccionado
+      console.log('🔵 Verificando archivo antes de upload...');
+      console.log('🔵 selectedFile:', selectedFile);
+      console.log('🔵 selectedFile existe:', !!selectedFile);
+      
+      let fileInfo = null;
+      if (selectedFile) {
+        console.log('🔵 Iniciando upload de archivo...');
+        fileInfo = await uploadFile();
+        console.log('🔵 FileInfo después de upload:', fileInfo);
+        if (!fileInfo) {
+          throw new Error('Error al subir archivo');
+        }
+      } else {
+        console.log('🔴 No hay selectedFile, saltando upload');
+      }
 
       const activityData = {
         ...formData,
         title: formData.title.trim(),
         description: formData.description.trim(),
         content: formData.content.trim(),
-        levelId: parseInt(formData.levelId)
+        type: typeMapping[formData.type] || formData.type, // Convertir de español a inglés
+        levelId: parseInt(formData.levelId),
+        // Usar info del archivo subido o mantener la existente
+        resourceFileUrl: fileInfo ? fileInfo.resourceFileUrl : formData.resourceFileUrl,
+        resourceFileName: fileInfo ? fileInfo.resourceFileName : formData.resourceFileName
       };
+
+      console.log('=== DATOS ENVIADOS AL BACKEND ===');
+      console.log('Datos de actividad a enviar:', activityData);
+      console.log('FileInfo recibido:', fileInfo);
+      console.log('ResourceFileUrl final:', activityData.resourceFileUrl);
+      console.log('ResourceFileName final:', activityData.resourceFileName);
+      console.log('================================');
 
       let response;
       if (editingActivity) {
@@ -90,6 +255,12 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
         // Crear nueva actividad
         response = await teacherAPI.createActivity(activityData);
       }
+      
+      console.log('=== RESPUESTA DEL BACKEND ===');
+      console.log('Response:', response);
+      console.log('Response ResourceFileUrl:', response?.resourceFileUrl);
+      console.log('Response ResourceFileName:', response?.resourceFileName);
+      console.log('=============================');
 
       // Llamar callback para actualizar la lista
       if (onActivityCreated) {
@@ -226,7 +397,7 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
               {/* Tipo */}
               <div>
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de actividad
+                  Tipo de actividad *
                 </label>
                 <select
                   id="type"
@@ -235,6 +406,7 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   disabled={loading}
+                  required
                 >
                   <option value="">Seleccionar tipo</option>
                   {activityTypes.map(type => (
@@ -246,19 +418,18 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
               </div>
             </div>
 
-            {/* URL del recurso */}
+            {/* recurso */}
             <div>
-              <label htmlFor="resourceUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                URL del recurso
+              <label htmlFor="resourceFile" className="block text-sm font-medium text-gray-700 mb-1">
+                Recurso *
               </label>
               <input
-                type="url"
-                id="resourceUrl"
-                name="resourceUrl"
-                value={formData.resourceUrl}
-                onChange={handleChange}
+                type="file"
+                id="resourceFile"
+                name="resourceFile"
+                onChange={handleFileChange}
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.mp3,.mp4,.doc,.docx"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="https://ejemplo.com/recurso"
                 disabled={loading}
               />
             </div>
