@@ -6,8 +6,13 @@ import com.englishproject.englishteacherapi.service.ActivityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/activities")
@@ -24,14 +29,14 @@ public class ActivityController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ActivityDTO> getActivityById(@PathVariable Long id) {
+    public ResponseEntity<ActivityDTO> getActivityById(@PathVariable @Positive(message = "ID debe ser positivo") Long id) {
         return activityService.getActivityById(id)
                 .map(activity -> ResponseEntity.ok(activity))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/level/{levelId}")
-    public ResponseEntity<List<ActivityDTO>> getActivitiesByLevelId(@PathVariable Long levelId) {
+    public ResponseEntity<List<ActivityDTO>> getActivitiesByLevelId(@PathVariable @Positive(message = "ID del nivel debe ser positivo") Long levelId) {
         List<ActivityDTO> activities = activityService.getActivitiesByLevelId(levelId);
         return ResponseEntity.ok(activities);
     }
@@ -51,12 +56,26 @@ public class ActivityController {
     }
 
     @PostMapping
-    public ResponseEntity<ActivityDTO> createActivity(@RequestBody ActivityDTO activityDTO) {
+    public ResponseEntity<Object> createActivity(@Valid @RequestBody ActivityDTO activityDTO, 
+                                                  BindingResult result) {
+        if (result.hasErrors()) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "Datos de entrada inválidos");
+            response.put("errors", result.getAllErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .toList());
+            return ResponseEntity.badRequest().body(response);
+        }
+        
         try {
             ActivityDTO createdActivity = activityService.createActivity(activityDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdActivity);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 

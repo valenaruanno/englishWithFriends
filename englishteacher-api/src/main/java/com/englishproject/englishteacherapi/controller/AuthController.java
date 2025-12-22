@@ -8,7 +8,9 @@ import com.englishproject.englishteacherapi.service.TokenServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,9 +28,20 @@ public class AuthController {
     private TokenServices tokenServices;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginDTO loginDTO, 
+                                                      BindingResult result) {
         Map<String, Object> response = new HashMap<>();
         final int EXPIRATION_TIME = 1800; // 30 minutos en segundos
+
+        // Validar errores de entrada
+        if (result.hasErrors()) {
+            response.put("success", false);
+            response.put("message", "Datos de entrada inválidos");
+            response.put("errors", result.getAllErrors().stream()
+                .map(error -> error.getDefaultMessage())
+                .toList());
+            return ResponseEntity.badRequest().body(response);
+        }
 
         try {
             Optional<Teacher> authenticatedTeacher = authService.authenticateTeacher(

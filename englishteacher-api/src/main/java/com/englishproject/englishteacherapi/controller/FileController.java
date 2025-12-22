@@ -10,6 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.constraints.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -25,9 +28,62 @@ import java.util.UUID;
 @RequestMapping("/api/files")
 @CrossOrigin(origins = "*")
 public class FileController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(FileController.class);
+    private static final java.util.regex.Pattern SAFE_FILENAME_PATTERN = java.util.regex.Pattern.compile("^[a-zA-Z0-9._-]+$");
+    private static final int MAX_FILENAME_LENGTH = 100;
 
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
+    
+    /**
+     * Valida que el nombre de archivo sea seguro y esté dentro del directorio permitido
+     */
+    private boolean isSecureFilePath(String fileName, String subdirectory) {
+        try {
+            // Validar que el nombre de archivo no esté vacío
+            if (fileName == null || fileName.trim().isEmpty()) {
+                logger.warn("Intento de acceso con nombre de archivo vacío");
+                return false;
+            }
+            
+            // Validar longitud
+            if (fileName.length() > MAX_FILENAME_LENGTH) {
+                logger.warn("Intento de acceso con nombre de archivo demasiado largo: {}", fileName);
+                return false;
+            }
+            
+            // Validar caracteres permitidos (solo alfanuméricos, puntos, guiones y guiones bajos)
+            if (!SAFE_FILENAME_PATTERN.matcher(fileName).matches()) {
+                logger.warn("Intento de acceso con caracteres no permitidos en el nombre: {}", fileName);
+                return false;
+            }
+            
+            // Validar que no contenga secuencias peligrosas
+            String normalizedName = fileName.toLowerCase();
+            if (normalizedName.contains("..") || normalizedName.contains("/") || 
+                normalizedName.contains("\\") || normalizedName.contains(":")) {
+                logger.warn("Intento de path traversal detectado: {}", fileName);
+                return false;
+            }
+            
+            // Construir y validar el path completo
+            Path basePath = Paths.get(uploadDir, subdirectory).toAbsolutePath().normalize();
+            Path filePath = basePath.resolve(fileName).normalize();
+            
+            // Verificar que el archivo resuelto esté dentro del directorio permitido
+            if (!filePath.startsWith(basePath)) {
+                logger.warn("Intento de acceso fuera del directorio permitido: {} -> {}", fileName, filePath);
+                return false;
+            }
+            
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("Error validando path de archivo: {}", fileName, e);
+            return false;
+        }
+    }
 
     @PostMapping("/upload/activity")
     public ResponseEntity<Map<String, Object>> uploadActivityFile(@RequestParam("file") MultipartFile file) {
@@ -82,9 +138,28 @@ public class FileController {
     }
 
     @GetMapping("/activities/{fileName}")
-    public ResponseEntity<Resource> downloadActivityFile(@PathVariable String fileName) {
+    public ResponseEntity<Resource> downloadActivityFile(
+            @PathVariable 
+            @Pattern(regexp = "^[a-zA-Z0-9._-]{1,100}$", message = "Nombre de archivo inválido")
+            String fileName) {
+        
         try {
-            Path filePath = Paths.get(uploadDir + "/activities").resolve(fileName).normalize();
+            // Validación de seguridad
+            if (!isSecureFilePath(fileName, "activities")) {
+                logger.warn("Intento de acceso no autorizado al archivo: {}", fileName);
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // Construir path seguro
+            Path basePath = Paths.get(uploadDir, "activities").toAbsolutePath().normalize();
+            Path filePath = basePath.resolve(fileName).normalize();
+            
+            // Verificación adicional de seguridad
+            if (!filePath.startsWith(basePath)) {
+                logger.error("Path traversal bloqueado: {}", filePath);
+                return ResponseEntity.badRequest().build();
+            }
+            
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
@@ -93,41 +168,80 @@ public class FileController {
                 if (contentType == null) {
                     contentType = "application/octet-stream";
                 }
+                
+                // Sanitizar el nombre del archivo para la respuesta
+                String safeFileName = StringUtils.cleanPath(resource.getFilename());
 
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(contentType))
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeFileName + "\"")
                         .body(resource);
             } else {
+                logger.info("Archivo no encontrado o no legible: {}", fileName);
                 return ResponseEntity.notFound().build();
             }
         } catch (MalformedURLException e) {
+            logger.error("URL malformada para archivo: {}", fileName, e);
             return ResponseEntity.badRequest().build();
         } catch (IOException e) {
+            logger.error("Error de E/O accediendo al archivo: {}", fileName, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } catch (Exception e) {
+            logger.error("Error inesperado accediendo al archivo: {}", fileName, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @DeleteMapping("/activities/{fileName}")
-    public ResponseEntity<Map<String, Object>> deleteActivityFile(@PathVariable String fileName) {
+    public ResponseEntity<Map<String, Object>> deleteActivityFile(
+            @PathVariable 
+            @Pattern(regexp = "^[a-zA-Z0-9._-]{1,100}$", message = "Nombre de archivo inválido")
+            String fileName) {
+        
         Map<String, Object> response = new HashMap<>();
         
         try {
-            Path filePath = Paths.get(uploadDir + "/activities").resolve(fileName).normalize();
+            // Validación de seguridad
+            if (!isSecureFilePath(fileName, "activities")) {
+                logger.warn("Intento de eliminación no autorizada del archivo: {}", fileName);
+                response.put("success", false);
+                response.put("message", "Nombre de archivo inválido o no permitido");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // Construir path seguro
+            Path basePath = Paths.get(uploadDir, "activities").toAbsolutePath().normalize();
+            Path filePath = basePath.resolve(fileName).normalize();
+            
+            // Verificación adicional de seguridad
+            if (!filePath.startsWith(basePath)) {
+                logger.error("Intento de path traversal en eliminación bloqueado: {}", filePath);
+                response.put("success", false);
+                response.put("message", "Acceso denegado");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+            }
             
             if (Files.exists(filePath)) {
                 Files.delete(filePath);
+                logger.info("Archivo eliminado exitosamente: {}", fileName);
                 response.put("success", true);
                 response.put("message", "Archivo eliminado exitosamente");
                 return ResponseEntity.ok(response);
             } else {
+                logger.info("Intento de eliminar archivo inexistente: {}", fileName);
                 response.put("success", false);
                 response.put("message", "Archivo no encontrado");
                 return ResponseEntity.notFound().build();
             }
         } catch (IOException e) {
+            logger.error("Error eliminando archivo: {}", fileName, e);
             response.put("success", false);
-            response.put("message", "Error al eliminar archivo: " + e.getMessage());
+            response.put("message", "Error al eliminar archivo");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (Exception e) {
+            logger.error("Error inesperado eliminando archivo: {}", fileName, e);
+            response.put("success", false);
+            response.put("message", "Error interno del servidor");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
