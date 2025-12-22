@@ -374,6 +374,50 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
               <label htmlFor="resourceFile" className="block text-sm font-medium text-gray-700 mb-1">
                 Recurso *
               </label>
+              
+              {/* Mostrar archivo existente si hay uno */}
+              {uploadedFileInfo && (
+                <div className="mb-3 p-3 bg-gray-50 rounded-md border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      <span className="text-sm text-gray-700">
+                        {uploadedFileInfo.fileName}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {uploadedFileInfo.fileUrl && (
+                        <a
+                          href={`http://localhost:8080${uploadedFileInfo.fileUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          Ver archivo
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedFileInfo(null);
+                          setSelectedFile(null);
+                          setFormData(prev => ({
+                            ...prev,
+                            resourceFileUrl: '',
+                            resourceFileName: ''
+                          }));
+                        }}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <input
                 type="file"
                 id="resourceFile"
@@ -383,6 +427,12 @@ const CreateActivityModal = ({ isOpen, onClose, levels, onActivityCreated, editi
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={loading}
               />
+              
+              {!uploadedFileInfo && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Formatos permitidos: JPG, PNG, WEBP, PDF, MP3, MP4, DOC, DOCX (máx. 10MB)
+                </p>
+              )}
             </div>
 
             {/* Contenido */}

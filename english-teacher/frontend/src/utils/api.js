@@ -18,7 +18,7 @@ export const apiCall = async (endpoint, options = {}) => {
                       endpoint.includes('/delete') || 
                       endpoint.includes('/admin') ||
                       endpoint.includes('/upload') ||
-                      (endpoint === '/activities' && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE'));
+                      (endpoint.startsWith('/activities') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE'));
 
   // Obtener token si existe y la ruta lo necesita
   const token = isAdminRoute ? authUtils.getAuthToken() : null;
