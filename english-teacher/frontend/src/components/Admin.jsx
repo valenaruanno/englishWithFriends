@@ -283,7 +283,7 @@ const Admin = () => {
               {activities.map((activity) => (
                 <div key={activity.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6 hover:shadow-lg transition-shadow">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">{activity.name}</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate pr-2">{activity.tittle}</h3>
                     <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                       <button
                         onClick={() => handleOpenEditActivityModal(activity)}

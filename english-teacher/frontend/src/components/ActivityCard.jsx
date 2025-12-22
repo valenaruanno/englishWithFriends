@@ -14,15 +14,22 @@ const ActivityCard = ({ activity }) => {
     'GAME': 'Juego'
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (activity.resourceFileUrl) {
-      // Crear un enlace temporal para descargar
-      const link = document.createElement('a');
-      link.href = `http://localhost:8080${activity.resourceFileUrl}`;
-      link.download = activity.resourceFileName || 'archivo';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        // Intentar descarga directa primero
+        const link = document.createElement('a');
+        link.href = `http://localhost:8080${activity.resourceFileUrl}`;
+        link.download = activity.resourceFileName || 'archivo';
+        link.target = '_self'; // Evitar que se abra en nueva pestaña
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (error) {
+        console.error('Error en descarga:', error);
+        // Fallback: abrir en nueva pestaña si la descarga directa falla
+        window.open(`http://localhost:8080${activity.resourceFileUrl}`, '_blank');
+      }
     }
   };
 
