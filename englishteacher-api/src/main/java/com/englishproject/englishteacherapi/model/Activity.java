@@ -31,7 +31,10 @@ public class Activity {
     private ActivityType type; // READING, WRITING, LISTENING, SPEAKING, GRAMMAR, VOCABULARY
 
     @Column
-    private String resourceUrl; // URL a archivos multimedia, documentos, etc.
+    private String resourceFileUrl; // URL a archivos multimedia, documentos, etc.
+
+    @Column
+    private String resourceFileName; // Nombre original del archivo
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "level_id", nullable = false)

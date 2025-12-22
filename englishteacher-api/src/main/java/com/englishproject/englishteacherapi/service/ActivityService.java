@@ -51,14 +51,35 @@ public class ActivityService {
     }
 
     public ActivityDTO createActivity(ActivityDTO activityDTO) {
+        System.out.println("=== ActivityService.createActivity() ===");
+        System.out.println("DTO ResourceFileUrl: " + activityDTO.getResourceFileUrl());
+        System.out.println("DTO ResourceFileName: " + activityDTO.getResourceFileName());
+        
         Optional<Level> level = levelRepository.findById(activityDTO.getLevelId());
         if (level.isPresent()) {
             Activity activity = convertToEntity(activityDTO);
             activity.setLevel(level.get());
             activity.setCreatedAt(LocalDateTime.now());
             activity.setUpdatedAt(LocalDateTime.now());
+            
+            System.out.println("Entity antes de guardar:");
+            System.out.println("Entity ResourceFileUrl: " + activity.getResourceFileUrl());
+            System.out.println("Entity ResourceFileName: " + activity.getResourceFileName());
+            
             Activity savedActivity = activityRepository.save(activity);
-            return convertToDTO(savedActivity);
+            
+            System.out.println("Entity después de guardar:");
+            System.out.println("Saved ResourceFileUrl: " + savedActivity.getResourceFileUrl());
+            System.out.println("Saved ResourceFileName: " + savedActivity.getResourceFileName());
+            
+            ActivityDTO result = convertToDTO(savedActivity);
+            
+            System.out.println("DTO resultado:");
+            System.out.println("Result ResourceFileUrl: " + result.getResourceFileUrl());
+            System.out.println("Result ResourceFileName: " + result.getResourceFileName());
+            System.out.println("=====================================");
+            
+            return result;
         }
         throw new IllegalArgumentException("Level not found with id: " + activityDTO.getLevelId());
     }
@@ -98,7 +119,8 @@ public class ActivityService {
                 activity.getDescription(),
                 activity.getContent(),
                 activity.getType(),
-                activity.getResourceUrl(),
+                activity.getResourceFileUrl(),
+                activity.getResourceFileName(),
                 activity.getLevel().getId(),
                 activity.getIsActive(),
                 activity.getCreatedAt(),
@@ -117,7 +139,9 @@ public class ActivityService {
         activity.setDescription(activityDTO.getDescription());
         activity.setContent(activityDTO.getContent());
         activity.setType(activityDTO.getType());
-        activity.setResourceUrl(activityDTO.getResourceUrl());
-        activity.setIsActive(activityDTO.getIsActive());
+        activity.setResourceFileUrl(activityDTO.getResourceFileUrl());
+        activity.setResourceFileName(activityDTO.getResourceFileName());
+        // Asegurar que isActive nunca sea null
+        activity.setIsActive(activityDTO.getIsActive() != null ? activityDTO.getIsActive() : true);
     }
 }

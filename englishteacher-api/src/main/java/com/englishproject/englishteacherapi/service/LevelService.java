@@ -57,7 +57,7 @@ public class LevelService {
     private LevelDTO convertToDTO(Level level) {
         Long activitiesCount = level.getActivities() != null ?
             level.getActivities().stream()
-                .filter(activity -> activity.getIsActive())
+                .filter(activity -> Boolean.TRUE.equals(activity.getIsActive()))
                 .count() : 0L;
 
         return new LevelDTO(
