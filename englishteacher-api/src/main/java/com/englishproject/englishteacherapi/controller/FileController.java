@@ -1,19 +1,5 @@
 package com.englishproject.englishteacherapi.controller;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import jakarta.validation.constraints.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -23,6 +9,28 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.validation.constraints.Pattern;
 
 @RestController
 @RequestMapping("/api/files")
@@ -88,38 +96,55 @@ public class FileController {
     @PostMapping("/upload/activity")
     public ResponseEntity<Map<String, Object>> uploadActivityFile(@RequestParam("file") MultipartFile file) {
         Map<String, Object> response = new HashMap<>();
-        
         try {
+            if (file == null) {
+                logger.error("No se recibió ningún archivo en la solicitud.");
+                response.put("success", false);
+                response.put("message", "No se recibió ningún archivo.");
+                return ResponseEntity.badRequest().body(response);
+            }
             if (file.isEmpty()) {
+                logger.error("El archivo recibido está vacío.");
                 response.put("success", false);
                 response.put("message", "Archivo vacío");
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Validar tipo de archivo
             String contentType = file.getContentType();
             if (!isValidFileType(contentType)) {
+                logger.error("Tipo de archivo no permitido: {}", contentType);
                 response.put("success", false);
                 response.put("message", "Tipo de archivo no permitido. Solo se permiten: jpg, jpeg, png, webp, pdf, mp3, mp4, doc, docx");
+                response.put("contentType", contentType);
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Crear directorio si no existe
             Path uploadPath = Paths.get(uploadDir + "/activities");
             if (!Files.exists(uploadPath)) {
+                logger.info("Directorio de subida no existe, creando: {}", uploadPath);
                 Files.createDirectories(uploadPath);
             }
 
-            // Generar nombre único para el archivo
             String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+            if (originalFileName == null || originalFileName.isEmpty()) {
+                logger.error("Nombre de archivo original vacío o nulo.");
+                response.put("success", false);
+                response.put("message", "Nombre de archivo original vacío o nulo.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (!originalFileName.contains(".")) {
+                logger.error("El archivo no tiene extensión: {}", originalFileName);
+                response.put("success", false);
+                response.put("message", "El archivo debe tener una extensión válida.");
+                return ResponseEntity.badRequest().body(response);
+            }
             String fileExtension = originalFileName.substring(originalFileName.lastIndexOf("."));
             String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
 
-            // Guardar archivo
             Path filePath = uploadPath.resolve(uniqueFileName);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Respuesta exitosa
+            logger.info("Archivo subido exitosamente: {} (original: {})", uniqueFileName, originalFileName);
             response.put("success", true);
             response.put("message", "Archivo subido exitosamente");
             response.put("fileName", uniqueFileName);
@@ -131,8 +156,14 @@ public class FileController {
             return ResponseEntity.ok(response);
 
         } catch (IOException e) {
+            logger.error("Error al subir archivo: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "Error al subir archivo: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (Exception e) {
+            logger.error("Error inesperado al subir archivo: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "Error inesperado al subir archivo: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
