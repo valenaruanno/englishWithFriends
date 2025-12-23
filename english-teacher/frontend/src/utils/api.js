@@ -1,7 +1,39 @@
 // Configuración base de la API
+// En producción, usa URLs relativas (mismo dominio)
+// En desarrollo, usa localhost si VITE_API_URL no está definido
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-export const API_FILE_BASE_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080';
+const getApiBaseUrl = () => {
+  // Si VITE_API_URL está definido, úsalo (desarrollo)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // En producción, usar URLs relativas (mismo dominio)
+  if (import.meta.env.PROD) {
+    return '/api';
+  }
+  
+  // Fallback para desarrollo local
+  return 'http://localhost:8080/api';
+};
+
+const getFileBaseUrl = () => {
+  // Si VITE_API_URL está definido, úsalo sin /api
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace('/api', '');
+  }
+  
+  // En producción, usar URL relativa (mismo dominio)
+  if (import.meta.env.PROD) {
+    return '';
+  }
+  
+  // Fallback para desarrollo local
+  return 'http://localhost:8080';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+export const API_FILE_BASE_URL = getFileBaseUrl();
 
 const apiConfig = {
   headers: {
