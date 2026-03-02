@@ -1,0 +1,104 @@
+
+services:
+  # ========================================
+  # PostgreSQL Database
+  # ========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: englishteacher-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - englishteacher-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U englishteacher -d englishteacher_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Spring Boot API
+  # ========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: englishteacher-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Database Configuration
+      PGHOST: ${PGHOST}
+      PGPORT: ${PGPORT}
+      PGDATABASE: ${PGDATABASE}
+      PGUSER: ${PGUSER}
+      PGPASSWORD: ${PGPASSWORD}
+
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+
+      # CORS Configuration
+      CORS_ORIGINS: ${CORS_ORIGINS}
+
+      # JPA Configuration
+      DDL_AUTO: ${DDL_AUTO}
+      SHOW_SQL: ${SHOW_SQL}
+      SQL_LOG_LEVEL: ${SQL_LOG_LEVEL}
+      BINDER_LOG_LEVEL: ${BINDER_LOG_LEVEL}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL}
+
+      # Server Port
+      PORT: ${PORT}
+
+      # Java Options
+      JAVA_OPTS: ${JAVA_OPTS}
+    ports:
+      - "${API_PORT}:8080"
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - englishteacher-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# ========================================
+# Volumes (Persistencia de datos)
+# ========================================
+volumes:
+  postgres_data:
+    driver: local
+    name: englishteacher-postgres-data
+  uploads_data:
+    driver: local
+    name: englishteacher-uploads
+
+# ========================================
+# Network (Red interna para comunicación)
+# ========================================
+networks:
+  englishteacher-network:
+    driver: bridge
+    name: englishteacher-network
+
