@@ -1,0 +1,62 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: 'englishteacher-app'  # Reemplazar con el nombre de tu Azure Web App
+  JAVA_VERSION: '21'
+  NODE_VERSION: '18'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Build Frontend
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: english-teacher/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: ./english-teacher/frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: ./english-teacher/frontend
+        run: npm run build
+
+      - name: Copy frontend build to backend static resources
+        run: |
+          rm -rf englishteacher-api/src/main/resources/static
+          mkdir -p englishteacher-api/src/main/resources/static
+          cp -r english-teacher/frontend/dist/* englishteacher-api/src/main/resources/static/
+
+      # Build Backend
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        working-directory: ./englishteacher-api
+        run: mvn clean package -DskipTests
+
+      # Deploy to Azure
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: englishteacher-api/target/*.jar
+
