@@ -32,6 +32,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
+                // Rutas públicas del frontend (archivos estáticos)
+                .requestMatchers("/", "/index.html", "/assets/**", "/*.js", "/*.css", "/*.png", "/*.svg", "/*.jpg", "/*.ico").permitAll()
+
                 // Rutas públicas de autenticación
                 .requestMatchers("/api/auth/login", "/api/auth/check-email", "/api/auth/validate-token").permitAll()
 
