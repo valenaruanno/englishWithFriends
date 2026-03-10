@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/levels", "/api/levels/**").permitAll()
                 // Permitir GET de actividades públicamente
                 .requestMatchers(HttpMethod.GET, "/api/activities", "/api/activities/{id}", "/api/activities/level/{levelId}").permitAll()
-                
+
                 // Rutas de archivos - descarga pública, upload requiere autenticación
                 .requestMatchers(HttpMethod.GET, "/api/files/activities/**").permitAll() // Descargar archivos
                 .requestMatchers("/uploads/**").permitAll() // Servir archivos estáticos
