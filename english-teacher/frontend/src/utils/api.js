@@ -14,8 +14,9 @@ const getApiBaseUrl = () => {
                       window.location.hostname === '';
 
   // Si NO estamos en localhost, usar URLs relativas (producción)
+  // El backend NO tiene prefijo /api, está en la raíz
   if (!isLocalhost) {
-    return '/api';
+    return '';
   }
   
   // Fallback para desarrollo local
