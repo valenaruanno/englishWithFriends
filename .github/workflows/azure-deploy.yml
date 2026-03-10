@@ -32,7 +32,7 @@ jobs:
 
       - name: Build frontend
         working-directory: ./english-teacher/frontend
-        run: npm run build
+        run: npm run build -- --mode production
         env:
           NODE_ENV: production
 
