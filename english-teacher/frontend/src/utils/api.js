@@ -8,8 +8,13 @@ const getApiBaseUrl = () => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // En producción, usar URLs relativas (mismo dominio)
-  if (import.meta.env.PROD) {
+   // Detectar si estamos en producción basándonos en la URL del navegador
+  const isLocalhost = window.location.hostname === 'localhost' ||
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname === '';
+
+  // Si NO estamos en localhost, usar URLs relativas (producción)
+  if (!isLocalhost) {
     return '/api';
   }
   
@@ -23,8 +28,13 @@ const getFileBaseUrl = () => {
     return import.meta.env.VITE_API_URL.replace('/api', '');
   }
   
-  // En producción, usar URL relativa (mismo dominio)
-  if (import.meta.env.PROD) {
+  // Detectar si estamos en producción basándonos en la URL del navegador
+  const isLocalhost = window.location.hostname === 'localhost' ||
+                      window.location.hostname === '127.0.0.1' ||
+                      window.location.hostname === '';
+
+  // Si NO estamos en localhost, usar URL relativa (producción)
+  if (!isLocalhost) {
     return '';
   }
   
