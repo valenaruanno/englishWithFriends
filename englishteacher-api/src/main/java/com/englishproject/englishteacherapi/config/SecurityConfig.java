@@ -34,7 +34,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Rutas públicas del frontend (archivos estáticos)
                 .requestMatchers("/", "/index.html", "/assets/**", "/*.js", "/*.css", "/*.png", "/*.svg", "/*.jpg", "/*.ico").permitAll()
-
+                
                 // Rutas públicas de autenticación
                 .requestMatchers("/api/auth/login", "/api/auth/check-email", "/api/auth/validate-token").permitAll()
 

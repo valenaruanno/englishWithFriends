@@ -1,46 +1,26 @@
 // Configuración base de la API
 // En producción, usa URLs relativas (mismo dominio)
-// En desarrollo, usa localhost si VITE_API_URL no está definido
+// En desarrollo, usa localhost
 
 const getApiBaseUrl = () => {
-  // Si VITE_API_URL está definido, úsalo (desarrollo)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  // En modo producción, siempre usar URLs relativas
+  if (import.meta.env.PROD) {
+    return '/api';
   }
   
-   // Detectar si estamos en producción basándonos en la URL del navegador
-  const isLocalhost = window.location.hostname === 'localhost' ||
-                      window.location.hostname === '127.0.0.1' ||
-                      window.location.hostname === '';
-
-  // Si NO estamos en localhost, usar URLs relativas (producción)
-  // El backend NO tiene prefijo /api, está en la raíz
-  if (!isLocalhost) {
-    return '';
-  }
-  
-  // Fallback para desarrollo local
-  return 'http://localhost:8080/api';
+  // En desarrollo, usar VITE_API_URL si está definido, sino localhost
+  return import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 };
 
 const getFileBaseUrl = () => {
-  // Si VITE_API_URL está definido, úsalo sin /api
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace('/api', '');
-  }
-  
-  // Detectar si estamos en producción basándonos en la URL del navegador
-  const isLocalhost = window.location.hostname === 'localhost' ||
-                      window.location.hostname === '127.0.0.1' ||
-                      window.location.hostname === '';
-
-  // Si NO estamos en localhost, usar URL relativa (producción)
-  if (!isLocalhost) {
+  // En modo producción, siempre usar URLs relativas sin /api
+  if (import.meta.env.PROD) {
     return '';
   }
   
-  // Fallback para desarrollo local
-  return 'http://localhost:8080';
+  // En desarrollo
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  return apiUrl.replace('/api', '');
 };
 
 const API_BASE_URL = getApiBaseUrl();
