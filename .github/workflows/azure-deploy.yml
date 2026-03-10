@@ -33,6 +33,8 @@ jobs:
       - name: Build frontend
         working-directory: ./english-teacher/frontend
         run: npm run build
+        env:
+          NODE_ENV: production
 
       - name: Copy frontend build to backend static resources
         run: |
