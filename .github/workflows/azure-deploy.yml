@@ -32,9 +32,12 @@ jobs:
 
       - name: Build frontend
         working-directory: ./english-teacher/frontend
-        run: npm run build -- --mode production
+        run: |
+          echo "Building frontend for production..."
+          npm run build
         env:
           NODE_ENV: production
+          VITE_MODE: production
 
       - name: Copy frontend build to backend static resources
         run: |
